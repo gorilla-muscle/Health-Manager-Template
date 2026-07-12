@@ -1,0 +1,66 @@
+name: 日次トレーニング・食事記録
+description: 1日分のトレーニング・食事・体調を記録する(Claude が発行する日次 Issue と同一構造)
+title: "[YYYY-MM-DD] DayNN - "
+labels:
+  - training
+  - nutrition
+body:
+  - type: input
+    id: date
+    attributes:
+      label: 日付
+      description: YYYY-MM-DD 形式
+      placeholder: "2026-07-12"
+    validations:
+      required: true
+
+  - type: textarea
+    id: menu
+    attributes:
+      label: 当日メニュー(自動記入)
+      description: monthly-plan スキルが計画から自動記入する欄。手動起票時は plans/YYYY-MM/plan.md から該当日を転記する
+      placeholder: |
+        ## トレーニング
+        | 種目 | セット×レップ | 重量 | 備考 |
+        |---|---|---|---|
+
+        ## 食事目標
+        | 目標kcal | P | F | C |
+        |---|---|---|---|
+    validations:
+      required: false
+
+  - type: textarea
+    id: result
+    attributes:
+      label: 実績記入欄
+      description: 実施結果を記入する(references/log-format.md の形式)。Claude に代筆させる場合は空欄のまま起票してよい
+      placeholder: |
+        ## トレーニング実績
+        | 種目 | 重量 | セット×レップ | RPE |
+        |---|---|---|---|
+
+        ## 食事実績
+        | 食事 | kcal | P | F | C |
+        |---|---|---|---|---|
+
+        ## メトリクス
+        体重: / 体脂肪率(任意): / 睡眠: / 歩数: / 水分:
+    validations:
+      required: false
+
+  - type: textarea
+    id: condition
+    attributes:
+      label: 体調メモ
+      description: 痛み・違和感・疲労感など。傷病に関する記載がある場合、Claude は計画継続を保留し専門家への相談を促す
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: スクリーンショット添付欄
+      description: 筋トレアプリ・食事管理アプリのスクショをドラッグ&ドロップで添付。氏名・アカウント名等が写る場合はトリミング推奨
+    validations:
+      required: false

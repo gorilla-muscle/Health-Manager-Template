@@ -1,0 +1,57 @@
+name: monthly-reminder
+
+# 毎月1日 00:00 JST (= 前月末日 15:00 UTC) にリマインド Issue を1件だけ作成する。
+# 計画本文の生成は行わない(トリガーは手動という決定に準拠)。
+on:
+  schedule:
+    - cron: "0 15 28-31 * *" # UTC 15:00 = JST 翌日 00:00。JST で「翌日が1日」の日だけ後段で判定
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if tomorrow (JST) is the 1st
+        id: check
+        run: |
+          # cron 発火時点の UTC 15:00 は JST 翌日 00:00。JST の「今日」が1日なら発火対象
+          JST_TODAY=$(TZ=Asia/Tokyo date +%d)
+          if [ "$JST_TODAY" = "01" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create reminder issue
+        if: steps.check.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          MONTH=$(TZ=Asia/Tokyo date +%Y-%m)
+          TITLE="[リマインド] ${MONTH} の月次計画を Claude に依頼してください"
+          # 二重作成防止: 同月のリマインドが既にあればスキップ
+          if gh issue list --search "in:title \"$TITLE\"" --state all --json number --jq 'length' | grep -qv '^0$'; then
+            echo "Reminder already exists. Skipping."
+            exit 0
+          fi
+          gh label create reminder --color FBCA04 --description "月初リマインド" 2>/dev/null || true
+          BODY_FILE=$(mktemp)
+          {
+            echo "今月の計画作成の時期です。"
+            echo ""
+            echo "Claude(Claude Code またはこのリポジトリを接続した Claude.ai)に対して、次のように依頼してください。"
+            echo ""
+            echo "> 今月のメニューを作って"
+            echo ""
+            echo "monthly-plan スキルが起動し、前月実績の読込 → ヒアリング → 計画生成 → 日次 Issue 一括発行 まで実行されます。"
+            echo ""
+            echo "※ この Issue はリマインドのみです。計画本文は自動生成されません。"
+          } > "$BODY_FILE"
+          gh issue create \
+            --title "$TITLE" \
+            --label reminder \
+            --body-file "$BODY_FILE"
