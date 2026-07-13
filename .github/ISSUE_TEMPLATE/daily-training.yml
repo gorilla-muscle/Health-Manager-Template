@@ -18,14 +18,18 @@ body:
     id: menu
     attributes:
       label: 当日メニュー(自動記入)
-      description: monthly-plan スキルが計画から自動記入する欄。手動起票時は plans/YYYY-MM/plan.md から該当日を転記する
+      description: monthly-plan スキルが計画から自動記入する欄。手動起票時は plans/YYYY-MM/plan.md から該当日を転記する。並び順はメトリクス目標→食事目標→トレーニング目標
       placeholder: |
-        ## トレーニング
-        | 種目 | セット×レップ | 重量 | 備考 |
-        |---|---|---|---|
+        ## メトリクス目標
+        | 目標歩数 | 睡眠時間 | 摂取水分量 |
+        |---|---|---|
 
         ## 食事目標
         | 目標kcal | P | F | C |
+        |---|---|---|---|
+
+        ## トレーニング目標
+        | 種目 | セット×レップ | 重量 | 備考 |
         |---|---|---|---|
     validations:
       required: false
@@ -49,11 +53,30 @@ body:
     validations:
       required: false
 
+  - type: checkboxes
+    id: condition_check
+    attributes:
+      label: 体調チェック
+      description: 該当する項目にチェックする(チェック=問題あり)。すべて問題なければ未チェックのままでよい
+      options:
+        - label: 身体に痛みがある(痛みの部位・内容は下の「体調メモ」に記載)
+        - label: 食欲に問題がある(食欲不振・過食など)
+        - label: 眠気・だるさがある
+        - label: その他、気になる問題がある(内容は下の「体調メモ」に記載)
+
   - type: textarea
-    id: condition
+    id: condition_detail
     attributes:
       label: 体調メモ
-      description: 痛み・違和感・疲労感など。傷病に関する記載がある場合、Claude は計画継続を保留し専門家への相談を促す
+      description: 上の体調チェックでチェックした項目(痛みの部位・内容、その他の問題点など)(痛みの部位・内容、その他の問題点など)を記載する。傷病に関する記載がある場合、Claude は計画継続を保留し専門家への相談を促す
+    validations:
+      required: false
+
+  - type: textarea
+    id: self_words
+    attributes:
+      label: 自分自身への言葉
+      description: 今日の自分に対して「偉かった」と思った点、「ここは反省」と思った点を自由に記載する
     validations:
       required: false
 
