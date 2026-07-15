@@ -74,5 +74,6 @@ fi
 echo "----"
 echo "セットアップ完了。次の手順:"
 echo "  1. 変更をコミット・push: git add -A && git commit -m 'chore: initial setup' && git push"
-echo "  2. (任意) GitHub Projects で月次ボード(Todo/Done/Skipped)を作成"
+echo "  2. (任意) GitHub Projects で運用ボードを作成(カラム4つ: TODO / Weekly TODO / Done / Not-Achieved)"
+echo "     手順は README「はじめてのセットアップ > 8. (任意)GitHub Projects で運用ボードを作る」参照"
 echo "  3. Claude Code をリポジトリ直下で起動し「今月のメニューを作って」と依頼"
