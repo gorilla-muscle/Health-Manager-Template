@@ -3,10 +3,14 @@
 #
 # 前提:
 #   - 事前に日別 Issue 本文を <bodies_dir>/YYYY-MM-DD.md として書き出しておく
+#     (本文はメニューのみ・実績記入欄は含めない)
 #   - 各本文ファイルの1行目はコメント行でタイトルを指定する:
-#       <!-- title: [2026-07-12] Day12 - Pull(背中・二頭) -->
+#       <!-- title: [2026-07-16] Day16 - Push A(胸メイン) -->
 #       <!-- labels: training,nutrition,month:2026-07 -->
 #     2行目以降が Issue 本文
+#   - 同ディレクトリに sibling ファイル <bodies_dir>/YYYY-MM-DD.comment.md を
+#     置いた日は、Issue 作成に成功した直後にそのファイル内容を
+#     Issue の1件目のコメントとして自動投稿する(実績記入欄コメント用)
 #
 # 使い方:
 #   bash create_issues.sh --month 2026-07 --bodies-dir /tmp/issues [--project <番号>] [--owner <org/user>] [--dry-run]
@@ -52,6 +56,8 @@ failed=0
 
 for body_file in "$BODIES_DIR"/"${MONTH}"-*.md; do
   [[ -e "$body_file" ]] || { echo "no body files matching ${MONTH}-*.md in $BODIES_DIR" >&2; exit 1; }
+  # sibling `.comment.md` は本文ファイルの iterate 対象外にする
+  case "$body_file" in *.comment.md) continue ;; esac
 
   title=$(sed -n '1s/<!-- title: \(.*\) -->/\1/p' "$body_file")
   labels=$(sed -n '2s/<!-- labels: \(.*\) -->/\1/p' "$body_file")
@@ -60,8 +66,13 @@ for body_file in "$BODIES_DIR"/"${MONTH}"-*.md; do
 
   body=$(tail -n +3 "$body_file")
 
+  # 実績記入欄コメントの sibling(存在するときのみ後で投稿する)
+  comment_file="${body_file%.md}.comment.md"
+  [[ -f "$comment_file" ]] || comment_file=""
+
   if $DRY_RUN; then
     echo "[dry-run] gh issue create --title \"$title\" --label \"$labels\""
+    [[ -n "$comment_file" ]] && echo "[dry-run]   → will post comment from: $comment_file"
     created=$((created+1))
     continue
   fi
@@ -69,6 +80,16 @@ for body_file in "$BODIES_DIR"/"${MONTH}"-*.md; do
   if url=$(gh issue create --title "$title" --label "$labels" --body "$body"); then
     echo "created: $url"
     created=$((created+1))
+
+    # 実績記入欄コメント投稿(sibling `.comment.md` があれば)
+    if [[ -n "$comment_file" ]]; then
+      if gh issue comment "$url" --body-file "$comment_file" >/dev/null; then
+        echo "  ↳ comment posted (record area) from $(basename "$comment_file")"
+      else
+        echo "WARN: failed to post record-area comment for $url" >&2
+      fi
+    fi
+
     if [[ -n "$PROJECT" ]]; then
       gh project item-add "$PROJECT" --owner "$OWNER" --url "$url" \
         || echo "WARN: project item-add failed for $url (ラベル集計で運用継続可)" >&2
