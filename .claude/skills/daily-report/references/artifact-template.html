@@ -1,0 +1,813 @@
+<!-- daily-report scaffold. ⚠️ このファイル（artifact-template.html）自体は絶対に上書き・編集しないこと。日次レポート生成時は Read → Write で results/YYYY-MM/daily/YYYY-MM-DD.html に丸ごとコピーし、{{プレースホルダ}} と REPEAT/IF ブロックだけを差し替える。CSS・カラーパレット（白基調×黄緑）・セクション順（01-05）・SVG 描画方式は変更しない。テンプレート本体のデザインを変えてよいのは、ユーザーが明示的にテンプレート改修を依頼したときのみ。プレースホルダの対応は artifact-fill-guide.md を参照。 Do NOT add doctype/html/head/body tags — Artifact wraps them at publish time. -->
+<title>{{DATE}} {{TITLE_SESSION}} 日次レポート</title>
+<style>
+  /* 白基調 × フレッシュな黄緑（ライム）。常に白基調で表示する（OS のダーク設定には追従しない）。 */
+  :root {
+    --bg: #FCFDF8;
+    --surface: #FFFFFF;
+    --surface-2: #EEF6DD;
+    --border: #E3EBD3;
+    --text: #232820;
+    --text-mute: #63695A;
+    --text-faint: #9AA089;
+    --accent-strength: #6FA52B;
+    --accent-nutrition: #2E9880;
+    --warning: #C4941F;
+    --success: #3C9A55;
+    --danger: #D65C42;
+    --grid: #EAF1DC;
+    --shadow: 0 1px 2px rgba(45,55,20,0.05), 0 4px 12px rgba(45,55,20,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "Helvetica Neue", sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "palt";
+  }
+  body { margin: 0; padding: 32px 24px 64px; }
+  main {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+  h1, h2, h3, h4 { font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 20px; }
+  h3 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-mute); font-weight: 600; }
+  p { margin: 0; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .mono { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-header .meta { display: flex; flex-direction: column; gap: 6px; }
+  .page-header .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .page-header .subtitle { color: var(--text-mute); font-size: 14px; }
+  .page-header .tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-mute);
+  }
+  .tag.strength { color: var(--accent-strength); border-color: var(--accent-strength); }
+  .tag.nutrition { color: var(--accent-nutrition); border-color: var(--accent-nutrition); }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: var(--shadow);
+  }
+  .kpi .label { font-size: 12px; color: var(--text-mute); letter-spacing: 0.02em; }
+  .kpi .value {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .kpi .delta { font-size: 12px; color: var(--text-mute); }
+  .delta.pos { color: var(--success); }
+  .delta.neg { color: var(--danger); }
+  .delta.warn { color: var(--warning); }
+
+  .section { display: flex; flex-direction: column; gap: 12px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card > .card-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .card > .card-body { padding: 20px; }
+  .card > .card-body.tight { padding: 14px 20px 20px; }
+
+  .split { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 800px) {
+    .split.two { grid-template-columns: 1fr 1fr; }
+    .split.wide-right { grid-template-columns: 3fr 4fr; }
+  }
+
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  th {
+    font-weight: 600;
+    color: var(--text-mute);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; }
+  tfoot td {
+    font-weight: 600;
+    background: var(--surface-2);
+    border-top: 2px solid var(--border);
+  }
+
+  .achv-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 64px;
+    gap: 14px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .achv-row:last-child { border-bottom: none; }
+  .achv-name { font-size: 13.5px; }
+  .achv-name .sub { color: var(--text-faint); font-size: 12px; display: block; }
+  .achv-track {
+    height: 10px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .achv-fill {
+    height: 100%;
+    background: var(--accent-strength);
+    border-radius: 6px;
+    transition: width 0.6s cubic-bezier(.6,.2,.2,1);
+  }
+  .achv-fill.warn { background: var(--warning); }
+  .achv-fill.good { background: var(--success); }
+  .achv-value { text-align: right; font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
+  @media (max-width: 600px) {
+    .achv-row { grid-template-columns: 130px 1fr 52px; }
+  }
+
+  .set-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; padding-bottom: 4px; }
+  .set-chip {
+    font-size: 11.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-mute);
+  }
+  .set-chip.ok { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, var(--border)); }
+  .set-chip.miss { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+
+  .assess { display: flex; flex-direction: column; gap: 0; }
+  .assess-item {
+    display: grid;
+    grid-template-columns: 4px 1fr;
+    gap: 16px;
+    padding: 18px 4px 18px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .assess-item:last-child { border-bottom: none; }
+  .assess-item .rail { background: var(--text-faint); border-radius: 2px; }
+  .assess-item.good .rail { background: var(--success); }
+  .assess-item.bad .rail { background: var(--danger); }
+  .assess-item.warn .rail { background: var(--warning); }
+  .assess-item .headline {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+    line-height: 1.45;
+  }
+  .assess-item .row {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-mute);
+    margin-top: 4px;
+  }
+  .assess-item .row .k {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding-top: 2px;
+  }
+  .assess-item .row .v { color: var(--text); }
+  .assess-item .row .v strong {
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 640px) {
+    .assess-item .row { grid-template-columns: 1fr; gap: 2px; }
+  }
+
+  .banner {
+    background: var(--surface-2);
+    border: 1px dashed var(--border);
+    color: var(--text-mute);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .banner .icon {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--warning);
+    margin-top: 8px;
+    flex-shrink: 0;
+  }
+
+  footer {
+    color: var(--text-faint);
+    font-size: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .radial { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .radial svg { flex-shrink: 0; }
+  .radial .details { display: flex; flex-direction: column; gap: 4px; }
+  .radial .big { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .radial .caption { font-size: 12px; color: var(--text-mute); }
+
+  .eyebrow-num {
+    display: inline-block;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    color: var(--text-faint);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    margin-right: 8px;
+  }
+
+  a { color: var(--accent-strength); text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { text-decoration-color: currentColor; }
+</style>
+
+<main>
+
+<!-- ================ HEADER ================ -->
+<header class="page-header">
+  <div class="meta">
+    <div class="eyebrow">Daily Report</div>
+    <h1>{{DATE}} <span style="color:var(--text-mute);font-weight:400;">{{SESSION_LABEL}}</span></h1>
+    <div class="subtitle">{{PHASE_TEXT}}</div>
+  </div>
+  <div class="tags">
+    <span class="tag strength">トレーニング</span>
+    <span class="tag nutrition">食事</span>
+  </div>
+</header>
+
+<!-- ================ KPI ROW (5 cards・数と順序は固定) ================ -->
+<section class="kpi-grid" aria-label="サマリー">
+  <div class="kpi">
+    <span class="label">計画レップ帯 の達成</span>
+    <span class="value tabular">{{KPI_ACHV_PCT}}<span style="font-size:16px;color:var(--text-mute);">%</span></span>
+    <span class="delta">{{KPI_ACHV_DETAIL}}</span>
+  </div>
+  <div class="kpi">
+    <span class="label">総ボリューム(重量×回×セット合計)</span>
+    <span class="value tabular">{{KPI_VOLUME}}<span style="font-size:16px;color:var(--text-mute);"> kg</span></span>
+    <span class="delta">{{KPI_VOLUME_DETAIL}}</span>
+  </div>
+  <div class="kpi">
+    <span class="label">摂取カロリー</span>
+    <span class="value tabular">{{KPI_KCAL}}<span style="font-size:16px;color:var(--text-mute);"> kcal</span></span>
+    <span class="delta {{KPI_KCAL_CLASS}}">{{KPI_KCAL_DETAIL}}</span>
+  </div>
+  <div class="kpi">
+    <span class="label">たんぱく質</span>
+    <span class="value tabular">{{KPI_P}}<span style="font-size:16px;color:var(--text-mute);"> g</span></span>
+    <span class="delta {{KPI_P_CLASS}}">{{KPI_P_DETAIL}}</span>
+  </div>
+  <div class="kpi">
+    <span class="label">体重</span>
+    <span class="value tabular">{{KPI_WEIGHT}}<span style="font-size:16px;color:var(--text-mute);"> kg</span></span>
+    <span class="delta {{KPI_WEIGHT_CLASS}}">{{KPI_WEIGHT_DETAIL}}</span>
+  </div>
+</section>
+
+<!-- ================ 01 今日のトレーニング ================ -->
+<section class="section">
+  <h3><span class="eyebrow-num">01</span>今日のトレーニング</h3>
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h2>種目ごとの達成率</h2>
+        <p style="color:var(--text-mute);font-size:13px;">実施したセットのうち、計画の目標回数に収まったセットの割合</p>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <!-- REPEAT:EXERCISE_ACHV start -->
+      <!-- 種目ごとに1ブロック複製。EX_ACHV_CLASS は "good"(100%)/"warn"(<100%)/"" (未実施相当なし) -->
+      <div class="achv-row">
+        <div class="achv-name">
+          {{EX_NAME}}
+          <span class="sub">{{EX_PLAN_LABEL}}</span>
+        </div>
+        <div class="achv-track"><div class="achv-fill {{EX_ACHV_CLASS}}" style="width:{{EX_ACHV_PCT}}%"></div></div>
+        <div class="achv-value">{{EX_ACHV_PCT}}%</div>
+      </div>
+      <div>
+        <div class="set-list">
+          <!-- REPEAT:SET_CHIP start -->
+          <!-- CHIP_CLASS: "ok" (計画レップ帯内) / "miss" (下限未達) / "" (中立) -->
+          <span class="set-chip {{CHIP_CLASS}}">{{CHIP_TEXT}}</span>
+          <!-- REPEAT:SET_CHIP end -->
+          <span class="set-chip">推定1RM {{EX_1RM}} kg</span>
+        </div>
+      </div>
+      <!-- REPEAT:EXERCISE_ACHV end -->
+
+      <p style="font-size:11.5px;color:var(--text-faint);margin-top:16px;">
+        推定1RM(1回で挙げられる最大重量の推定値)= 重量 × (1 + 回数 ÷ 30)。上記表は各種目の最大挙上セットから算出。
+      </p>
+
+    </div>
+  </div>
+
+  <div class="split two">
+    <div class="card">
+      <div class="card-head">
+        <h2>種目別ボリューム</h2>
+        <span style="color:var(--text-faint);font-size:12px;">重量 × 回数 × セット</span>
+      </div>
+      <div class="card-body tight">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>種目</th><th class="num">ボリューム</th><th class="num">構成比</th></tr>
+            </thead>
+            <tbody>
+              <!-- REPEAT:VOLUME_ROW start -->
+              <tr><td>{{VOL_EX_NAME}}</td><td class="num">{{VOL_KG}} kg</td><td class="num">{{VOL_PCT}}%</td></tr>
+              <!-- REPEAT:VOLUME_ROW end -->
+            </tbody>
+            <tfoot>
+              <tr><td>合計</td><td class="num">{{VOL_TOTAL}} kg</td><td class="num">100.0%</td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>推定1RM</h2>
+        <span style="color:var(--text-faint);font-size:12px;">1回で挙げられる最大重量の推定</span>
+      </div>
+      <div class="card-body tight">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>種目</th><th class="num">基準セット</th><th class="num">推定1RM</th></tr>
+            </thead>
+            <tbody>
+              <!-- REPEAT:ONE_RM_ROW start -->
+              <tr><td>{{RM_EX_NAME}}</td><td class="num">{{RM_BASE_SET}}</td><td class="num">{{RM_VALUE}} kg</td></tr>
+              <!-- REPEAT:ONE_RM_ROW end -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================ 02 今日の食事 ================ -->
+<section class="section">
+  <h3><span class="eyebrow-num">02</span>今日の食事</h3>
+
+  <div class="split wide-right">
+    <div class="card">
+      <div class="card-head">
+        <h2>目標 vs 実績</h2>
+      </div>
+      <div class="card-body">
+        <div class="radial">
+          <!-- SVG ドーナツ: KCAL_DASH は 452.39 × KCAL_PCT / 100 で算出(円周=452.39固定) -->
+          <svg width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="カロリー達成率 {{KCAL_PCT}}%">
+            <circle cx="90" cy="90" r="72" fill="none" stroke="var(--surface-2)" stroke-width="14"/>
+            <circle cx="90" cy="90" r="72"
+                    fill="none"
+                    stroke="var(--accent-strength)"
+                    stroke-width="14"
+                    stroke-linecap="round"
+                    stroke-dasharray="{{KCAL_DASH}} 452.39"
+                    transform="rotate(-90 90 90)"/>
+            <text x="90" y="86" text-anchor="middle" font-size="30" font-weight="600" fill="var(--text)" font-variant-numeric="tabular-nums">{{KCAL_PCT}}%</text>
+            <text x="90" y="108" text-anchor="middle" font-size="11" fill="var(--text-mute)" letter-spacing="0.06em">カロリー達成</text>
+          </svg>
+          <div class="details">
+            <div class="big tabular">{{KCAL_ACTUAL}} <span style="font-size:16px;color:var(--text-mute);">kcal</span></div>
+            <div class="caption">{{KCAL_DELTA_TEXT}}</div>
+            <div class="caption" style="color:var(--warning);">
+              {{KCAL_WARNING_HTML}}
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:22px;display:flex;flex-direction:column;gap:14px;">
+
+          <!-- PFC 3バー: 各 BAR_WIDTH は 300 × PCT / 100(バー幅=300固定) -->
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-mute);margin-bottom:4px;">
+              <span>たんぱく質(P)</span><span class="tabular">{{P_ACTUAL}} / {{P_GOAL}} g · {{P_PCT}}%</span>
+            </div>
+            <svg width="100%" height="18" viewBox="0 0 300 18" preserveAspectRatio="none">
+              <rect x="0" y="6" width="300" height="6" fill="var(--surface-2)" rx="3"/>
+              <rect x="0" y="4" width="300" height="10" fill="none" stroke="var(--border)" stroke-dasharray="2 2" rx="5"/>
+              <rect x="0" y="6" width="{{P_BAR_WIDTH}}" height="6" fill="var(--accent-nutrition)" rx="3"/>
+            </svg>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-mute);margin-bottom:4px;">
+              <span>脂質(F){{F_LABEL_SUFFIX}}</span><span class="tabular">{{F_ACTUAL}} / {{F_GOAL}} g · {{F_PCT}}%</span>
+            </div>
+            <svg width="100%" height="18" viewBox="0 0 300 18" preserveAspectRatio="none">
+              <rect x="0" y="6" width="300" height="6" fill="var(--surface-2)" rx="3"/>
+              <rect x="0" y="6" width="{{F_BAR_WIDTH}}" height="6" fill="var(--accent-nutrition)" rx="3"/>
+              <line x1="300" y1="2" x2="300" y2="16" stroke="var(--warning)" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-mute);margin-bottom:4px;">
+              <span>炭水化物(C)</span><span class="tabular">{{C_ACTUAL}} / {{C_GOAL}} g · {{C_PCT}}%</span>
+            </div>
+            <svg width="100%" height="18" viewBox="0 0 300 18" preserveAspectRatio="none">
+              <rect x="0" y="6" width="300" height="6" fill="var(--surface-2)" rx="3"/>
+              <rect x="0" y="4" width="300" height="10" fill="none" stroke="var(--border)" stroke-dasharray="2 2" rx="5"/>
+              <rect x="0" y="6" width="{{C_BAR_WIDTH}}" height="6" fill="var(--accent-nutrition)" rx="3"/>
+            </svg>
+          </div>
+
+          <p style="font-size:11.5px;color:var(--text-faint);margin-top:4px;">
+            点線は目標値の 100% 位置。P・F・C はそれぞれたんぱく質・脂質・炭水化物の略。
+          </p>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>今日食べたもの</h2>
+        <span style="color:var(--text-faint);font-size:12px;">全 {{FOOD_COUNT}} 品目</span>
+      </div>
+      <div class="card-body tight">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>時刻</th>
+                <th>食品</th>
+                <th class="num">g</th>
+                <th class="num">kcal</th>
+                <th class="num">P</th>
+                <th class="num">F</th>
+                <th class="num">C</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- REPEAT:FOOD_ROW start -->
+              <tr><td>{{FOOD_TIME}}</td><td>{{FOOD_NAME}}</td><td class="num">{{FOOD_G}}</td><td class="num">{{FOOD_KCAL}}</td><td class="num">{{FOOD_P}}</td><td class="num">{{FOOD_F}}</td><td class="num">{{FOOD_C}}</td></tr>
+              <!-- REPEAT:FOOD_ROW end -->
+            </tbody>
+            <tfoot>
+              <tr><td colspan="3">合計</td><td class="num">{{FOOD_TOTAL_KCAL}}</td><td class="num">{{FOOD_TOTAL_P}}</td><td class="num">{{FOOD_TOTAL_F}}</td><td class="num">{{FOOD_TOTAL_C}}</td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================ 03 体の状態 ================ -->
+<section class="section">
+  <h3><span class="eyebrow-num">03</span>体の状態</h3>
+  <div class="card">
+    <div class="card-body">
+      <div class="kpi-grid" style="gap:8px;">
+        <div class="kpi" style="box-shadow:none;background:var(--surface-2);"><span class="label">体重</span><span class="value tabular">{{M_WEIGHT}}<span style="font-size:14px;color:var(--text-mute);"> kg</span></span><span class="delta {{M_WEIGHT_CLASS}}">{{M_WEIGHT_DETAIL}}</span></div>
+        <div class="kpi" style="box-shadow:none;background:var(--surface-2);"><span class="label">体脂肪率</span><span class="value tabular">{{M_BF}}<span style="font-size:14px;color:var(--text-mute);"> %</span></span><span class="delta">{{M_BF_DETAIL}}</span></div>
+        <div class="kpi" style="box-shadow:none;background:var(--surface-2);"><span class="label">骨格筋</span><span class="value tabular">{{M_SM}}<span style="font-size:14px;color:var(--text-mute);"> kg</span></span><span class="delta">{{M_SM_DETAIL}}</span></div>
+        <div class="kpi" style="box-shadow:none;background:var(--surface-2);"><span class="label">睡眠</span><span class="value tabular">{{M_SLEEP}}<span style="font-size:14px;color:var(--text-mute);"> h</span></span><span class="delta {{M_SLEEP_CLASS}}">{{M_SLEEP_DETAIL}}</span></div>
+        <div class="kpi" style="box-shadow:none;background:var(--surface-2);"><span class="label">歩数</span><span class="value tabular">{{M_STEPS}}<span style="font-size:14px;color:var(--text-mute);"> 歩</span></span><span class="delta">{{M_STEPS_DETAIL}}</span></div>
+        <div class="kpi" style="box-shadow:none;background:var(--surface-2);"><span class="label">水分</span><span class="value tabular">{{M_WATER_L}}<span style="font-size:14px;color:var(--text-mute);"> L</span></span><span class="delta">{{M_WATER_ML}} ml</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==== 03 体組成推移(直近30日・計測がある系列のみ) ==== -->
+  <div class="card">
+    <div class="card-head">
+      <h2>体組成推移(直近30日)</h2>
+      <span style="color:var(--text-faint);font-size:12px;">計測値がある系列のみ表示。2件未満はデータ不足として省略します</span>
+    </div>
+    <div class="card-body tight">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
+
+        <!-- IF:TREND_WEIGHT start -->
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <span style="font-size:13px;color:var(--text-mute);">体重</span>
+            <span class="tabular" style="font-size:14px;color:var(--text);"><strong>{{TREND_WEIGHT_LATEST}}</strong> kg <span style="color:var(--text-mute);font-size:12px;">({{TREND_WEIGHT_DELTA}})</span></span>
+          </div>
+          <svg viewBox="0 0 320 100" width="100%" height="100" style="display:block;">
+            <polyline points="{{TREND_WEIGHT_POLYLINE}}" fill="none" stroke="var(--accent-nutrition)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- REPEAT:TREND_WEIGHT_POINT start -->
+            <circle cx="{{TW_PX}}" cy="{{TW_PY}}" r="2.5" fill="var(--accent-nutrition)"/>
+            <!-- REPEAT:TREND_WEIGHT_POINT end -->
+          </svg>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-top:4px;">
+            <span>{{TREND_WEIGHT_XSTART}}</span>
+            <span>{{TREND_WEIGHT_XEND}}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">Y 軸: {{TREND_WEIGHT_YMIN}} 〜 {{TREND_WEIGHT_YMAX}} kg</div>
+        </div>
+        <!-- IF:TREND_WEIGHT end -->
+        <!-- IF:TREND_WEIGHT_INSUFFICIENT start -->
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;color:var(--text-mute);font-size:13px;">
+          <div style="margin-bottom:4px;"><strong>体重</strong></div>
+          データ不足 — 推移を表示するにはあと {{TREND_WEIGHT_NEEDED}} 回の記録が必要です
+        </div>
+        <!-- IF:TREND_WEIGHT_INSUFFICIENT end -->
+
+        <!-- IF:TREND_BF start -->
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <span style="font-size:13px;color:var(--text-mute);">体脂肪率</span>
+            <span class="tabular" style="font-size:14px;color:var(--text);"><strong>{{TREND_BF_LATEST}}</strong> % <span style="color:var(--text-mute);font-size:12px;">({{TREND_BF_DELTA}})</span></span>
+          </div>
+          <svg viewBox="0 0 320 100" width="100%" height="100" style="display:block;">
+            <polyline points="{{TREND_BF_POLYLINE}}" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- REPEAT:TREND_BF_POINT start -->
+            <circle cx="{{TB_PX}}" cy="{{TB_PY}}" r="2.5" fill="var(--warning)"/>
+            <!-- REPEAT:TREND_BF_POINT end -->
+          </svg>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-top:4px;">
+            <span>{{TREND_BF_XSTART}}</span>
+            <span>{{TREND_BF_XEND}}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">Y 軸: {{TREND_BF_YMIN}} 〜 {{TREND_BF_YMAX}} %</div>
+        </div>
+        <!-- IF:TREND_BF end -->
+        <!-- IF:TREND_BF_INSUFFICIENT start -->
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;color:var(--text-mute);font-size:13px;">
+          <div style="margin-bottom:4px;"><strong>体脂肪率</strong></div>
+          データ不足 — 推移を表示するにはあと {{TREND_BF_NEEDED}} 回の記録が必要です
+        </div>
+        <!-- IF:TREND_BF_INSUFFICIENT end -->
+
+        <!-- IF:TREND_SM start -->
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <span style="font-size:13px;color:var(--text-mute);">骨格筋</span>
+            <span class="tabular" style="font-size:14px;color:var(--text);"><strong>{{TREND_SM_LATEST}}</strong> kg <span style="color:var(--text-mute);font-size:12px;">({{TREND_SM_DELTA}})</span></span>
+          </div>
+          <svg viewBox="0 0 320 100" width="100%" height="100" style="display:block;">
+            <polyline points="{{TREND_SM_POLYLINE}}" fill="none" stroke="var(--accent-strength)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- REPEAT:TREND_SM_POINT start -->
+            <circle cx="{{TS_PX}}" cy="{{TS_PY}}" r="2.5" fill="var(--accent-strength)"/>
+            <!-- REPEAT:TREND_SM_POINT end -->
+          </svg>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-top:4px;">
+            <span>{{TREND_SM_XSTART}}</span>
+            <span>{{TREND_SM_XEND}}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:2px;">Y 軸: {{TREND_SM_YMIN}} 〜 {{TREND_SM_YMAX}} kg</div>
+        </div>
+        <!-- IF:TREND_SM end -->
+        <!-- IF:TREND_SM_INSUFFICIENT start -->
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;color:var(--text-mute);font-size:13px;">
+          <div style="margin-bottom:4px;"><strong>骨格筋</strong></div>
+          データ不足 — 推移を表示するにはあと {{TREND_SM_NEEDED}} 回の記録が必要です
+        </div>
+        <!-- IF:TREND_SM_INSUFFICIENT end -->
+
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>体調チェック</h2>
+      <span style="color:var(--text-faint);font-size:12px;">気になる項目のみ色つきで強調</span>
+    </div>
+    <div class="card-body tight">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>項目</th><th>状態</th><th>メモ</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>身体の痛み</td><td style="{{COND_PAIN_STYLE}}">{{COND_PAIN_STATUS}}</td><td>{{COND_PAIN_NOTE}}</td></tr>
+            <tr><td>食欲</td><td style="{{COND_APPETITE_STYLE}}">{{COND_APPETITE_STATUS}}</td><td>{{COND_APPETITE_NOTE}}</td></tr>
+            <tr><td>眠気・だるさ</td><td style="{{COND_FATIGUE_STYLE}}">{{COND_FATIGUE_STATUS}}</td><td>{{COND_FATIGUE_NOTE}}</td></tr>
+            <tr><td>その他</td><td style="{{COND_OTHER_STYLE}}">{{COND_OTHER_STATUS}}</td><td>{{COND_OTHER_NOTE}}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- IF:PAIN_WARNING start -->
+      <div class="banner" style="margin-top:14px;">
+        <span class="icon"></span>
+        <div>
+          <strong style="color:var(--text);">痛みの記録があります</strong> — {{PAIN_WARNING_TEXT}}<br>
+          無理をせず、症状が続く・強い場合は医師などの専門家に相談してください。
+        </div>
+      </div>
+      <!-- IF:PAIN_WARNING end -->
+    </div>
+  </div>
+</section>
+
+<!-- ================ 04 直近30日の伸び ================ -->
+<section class="section">
+  <h3><span class="eyebrow-num">04</span>直近 30 日の伸び</h3>
+  <div class="card">
+    <div class="card-body">
+      <!-- IF:DATA_INSUFFICIENT start -->
+      <div class="banner">
+        <span class="icon"></span>
+        <div>
+          <strong style="color:var(--text);">まだ比較データが足りません</strong> — {{INSUFFICIENT_REASON}}<br>
+          {{INSUFFICIENT_NEXT_ACTION}}
+        </div>
+      </div>
+      <!-- IF:DATA_INSUFFICIENT end -->
+
+      <div class="table-wrap" style="margin-top:16px;">
+        <table>
+          <thead>
+            <tr><th>種目</th><th>指標</th><th class="num">30 日前</th><th class="num">今日</th><th>状態</th></tr>
+          </thead>
+          <tbody>
+            <!-- REPEAT:PROG_ROW start -->
+            <!-- PROG_STATE_STYLE 例: color:var(--warning); (記録不足時) / color:var(--success); (上向き) / color:var(--danger); (下向き) -->
+            <tr><td>{{PROG_EX_NAME}}</td><td>{{PROG_METRIC}}</td><td class="num">{{PROG_30D_AGO}}</td><td class="num">{{PROG_LATEST}}</td><td style="{{PROG_STATE_STYLE}}">{{PROG_STATE}}</td></tr>
+            <!-- REPEAT:PROG_ROW end -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================ 05 今日の振り返り ================ -->
+<section class="section">
+  <h3><span class="eyebrow-num">05</span>今日の振り返り</h3>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>今日の自分へ</h2>
+      <span style="color:var(--text-faint);font-size:12px;">あなた自身が記録した言葉</span>
+    </div>
+    <div class="card-body">
+      <blockquote style="margin:0;padding:6px 0 6px 16px;border-left:3px solid var(--accent-nutrition);color:var(--text);font-size:15px;line-height:1.75;">
+        {{SELF_WORDS_HTML}}
+      </blockquote>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2 style="color:var(--success);">◎ 良かったところ</h2>
+    </div>
+    <div class="card-body">
+      <div class="assess">
+        <!-- REPEAT:GOOD_ITEM start -->
+        <div class="assess-item good">
+          <div class="rail"></div>
+          <div>
+            <div class="headline">{{GOOD_HEADLINE}}</div>
+            <div class="row"><div class="k">数字</div><div class="v">{{GOOD_NUMBERS_HTML}}</div></div>
+            <div class="row"><div class="k">なぜ良い</div><div class="v">{{GOOD_WHY}}</div></div>
+            <div class="row"><div class="k">明日活かす</div><div class="v">{{GOOD_ACTION_HTML}}</div></div>
+          </div>
+        </div>
+        <!-- REPEAT:GOOD_ITEM end -->
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2 style="color:var(--danger);">△ 惜しかったところ</h2>
+    </div>
+    <div class="card-body">
+      <div class="assess">
+        <!-- REPEAT:BAD_ITEM start -->
+        <!-- BAD_CLASS: "bad"(改善必須) / "warn"(注意喚起) -->
+        <div class="assess-item {{BAD_CLASS}}">
+          <div class="rail"></div>
+          <div>
+            <div class="headline">{{BAD_HEADLINE}}</div>
+            <div class="row"><div class="k">数字</div><div class="v">{{BAD_NUMBERS_HTML}}</div></div>
+            <div class="row"><div class="k">{{BAD_WHY_LABEL}}</div><div class="v">{{BAD_WHY}}</div></div>
+            <div class="row"><div class="k">明日どうする</div><div class="v">{{BAD_ACTION_HTML}}</div></div>
+          </div>
+        </div>
+        <!-- REPEAT:BAD_ITEM end -->
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>▶ 明日 {{TOMORROW_LABEL}} に向けて</h2>
+    </div>
+    <div class="card-body">
+      <div class="assess">
+        <!-- REPEAT:TOMORROW_ITEM start -->
+        <div class="assess-item">
+          <div class="rail"></div>
+          <div>
+            <div class="headline">{{TMR_HEADLINE}}</div>
+            <div class="row"><div class="k">やること</div><div class="v">{{TMR_TODO_HTML}}</div></div>
+            <div class="row"><div class="k">今日から持ち越す学び</div><div class="v">{{TMR_LEARN_HTML}}</div></div>
+          </div>
+        </div>
+        <!-- REPEAT:TOMORROW_ITEM end -->
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2 style="color:var(--accent-strength);">■ 総評 — トレーナーから</h2>
+      <span style="color:var(--text-faint);font-size:12px;">今日いちばん伝えたいこと</span>
+    </div>
+    <div class="card-body">
+      <div style="font-size:15px;line-height:1.85;color:var(--text);border-left:3px solid var(--accent-strength);padding:2px 0 2px 16px;">
+        {{OVERALL_REVIEW_HTML}}
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<footer>
+  <div>
+    生成: {{DATE}} · Health-Manager
+  </div>
+  <div>
+    種目一覧・食品一覧はアプリのスクリーンショットとCSVから直接読み取り
+  </div>
+</footer>
+
+</main>
