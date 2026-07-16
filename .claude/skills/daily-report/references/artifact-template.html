@@ -1,22 +1,71 @@
-<!-- daily-report scaffold. ⚠️ このファイル（artifact-template.html）自体は絶対に上書き・編集しないこと。日次レポート生成時は Read → Write で results/YYYY-MM/daily/YYYY-MM-DD.html に丸ごとコピーし、{{プレースホルダ}} と REPEAT/IF ブロックだけを差し替える。CSS・カラーパレット（白基調×黄緑）・セクション順（01-05）・SVG 描画方式は変更しない。テンプレート本体のデザインを変えてよいのは、ユーザーが明示的にテンプレート改修を依頼したときのみ。プレースホルダの対応は artifact-fill-guide.md を参照。 Do NOT add doctype/html/head/body tags — Artifact wraps them at publish time. -->
+<!-- daily-report scaffold. ⚠️ このファイル（artifact-template.html）自体は絶対に上書き・編集しないこと。日次レポート生成時は Read → Write で results/YYYY-MM/daily/YYYY-MM-DD.html に丸ごとコピーし、{{プレースホルダ}} と REPEAT/IF ブロックだけを差し替える。CSS・カラーパレット・セクション順（01-05）・SVG 描画方式は変更しない。テンプレート本体のデザインを変えてよいのは、ユーザーが明示的にテンプレート改修を依頼したときのみ。プレースホルダの対応は artifact-fill-guide.md を参照。 Do NOT add doctype/html/head/body tags — Artifact wraps them at publish time. -->
 <title>{{DATE}} {{TITLE_SESSION}} 日次レポート</title>
 <style>
-  /* 白基調 × フレッシュな黄緑（ライム）。常に白基調で表示する（OS のダーク設定には追従しない）。 */
   :root {
-    --bg: #FCFDF8;
+    --bg: #FAFAF7;
     --surface: #FFFFFF;
-    --surface-2: #EEF6DD;
-    --border: #E3EBD3;
-    --text: #232820;
-    --text-mute: #63695A;
-    --text-faint: #9AA089;
-    --accent-strength: #6FA52B;
-    --accent-nutrition: #2E9880;
-    --warning: #C4941F;
-    --success: #3C9A55;
-    --danger: #D65C42;
-    --grid: #EAF1DC;
-    --shadow: 0 1px 2px rgba(45,55,20,0.05), 0 4px 12px rgba(45,55,20,0.05);
+    --surface-2: #F3F2EC;
+    --border: #E4E3DC;
+    --text: #1C1D22;
+    --text-mute: #6A6C74;
+    --text-faint: #9DA0A5;
+    --accent-strength: #C8462A;
+    --accent-nutrition: #4C7A64;
+    --warning: #B48A28;
+    --success: #4C7A64;
+    --danger: #B84D2F;
+    --grid: #EEEDE6;
+    --shadow: 0 1px 2px rgba(28,29,34,0.04), 0 4px 12px rgba(28,29,34,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141A;
+      --surface: #191C24;
+      --surface-2: #1F232D;
+      --border: #262A33;
+      --text: #EDEEEF;
+      --text-mute: #9AA0A6;
+      --text-faint: #6F757D;
+      --accent-strength: #E67558;
+      --accent-nutrition: #7BB198;
+      --warning: #D8AA47;
+      --success: #7BB198;
+      --danger: #E67558;
+      --grid: #21252F;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #FAFAF7;
+    --surface: #FFFFFF;
+    --surface-2: #F3F2EC;
+    --border: #E4E3DC;
+    --text: #1C1D22;
+    --text-mute: #6A6C74;
+    --text-faint: #9DA0A5;
+    --accent-strength: #C8462A;
+    --accent-nutrition: #4C7A64;
+    --warning: #B48A28;
+    --success: #4C7A64;
+    --danger: #B84D2F;
+    --grid: #EEEDE6;
+    --shadow: 0 1px 2px rgba(28,29,34,0.04), 0 4px 12px rgba(28,29,34,0.04);
+  }
+  :root[data-theme="dark"] {
+    --bg: #12141A;
+    --surface: #191C24;
+    --surface-2: #1F232D;
+    --border: #262A33;
+    --text: #EDEEEF;
+    --text-mute: #9AA0A6;
+    --text-faint: #6F757D;
+    --accent-strength: #E67558;
+    --accent-nutrition: #7BB198;
+    --warning: #D8AA47;
+    --success: #7BB198;
+    --danger: #E67558;
+    --grid: #21252F;
+    --shadow: none;
   }
 
   * { box-sizing: border-box; }

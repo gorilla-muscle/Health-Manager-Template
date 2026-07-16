@@ -1,6 +1,6 @@
 # artifact-fill-guide.md — HTMLテンプレートの埋め方ガイド
 
-`artifact-template.html` は日次レポート HTML の完全固定 scaffold。**このテンプレートファイル自体は絶対に上書き・編集しない**（レポート生成の作業中に `artifact-template.html` へ変更を加えない）。**CSS / レイアウト / SVG 描画方式 / カラーパレット（白基調×黄緑）/ セクションの並び順は絶対に変更しない**。必ず Read → Write で `results/YYYY-MM/daily/YYYY-MM-DD.html` へ丸ごとコピーし、以下のプレースホルダと繰り返しブロックだけを埋めて生成する。テンプレート本体のデザインを変えてよいのは、ユーザーが明示的にテンプレート改修を依頼したときのみ。
+`artifact-template.html` は日次レポート HTML の完全固定 scaffold。**このテンプレートファイル自体は絶対に上書き・編集しない**（レポート生成の作業中に `artifact-template.html` へ変更を加えない）。**CSS / レイアウト / SVG 描画方式 / カラーパレット / セクションの並び順は絶対に変更しない**。必ず Read → Write で `results/YYYY-MM/daily/YYYY-MM-DD.html` へ丸ごとコピーし、以下のプレースホルダと繰り返しブロックだけを埋めて生成する。テンプレート本体のデザインを変えてよいのは、ユーザーが明示的にテンプレート改修を依頼したときのみ。
 
 ## 生成手順
 

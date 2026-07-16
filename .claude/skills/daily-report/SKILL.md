@@ -54,7 +54,7 @@ CLAUDE.md の環境判定に従う。
 
 #### 生成フロー
 
-> ⚠️ **`artifact-template.html` 自体は編集しない。** 必ず Read → Write で当日の HTML（`results/YYYY-MM/daily/YYYY-MM-DD.html`）へコピーし、そのコピー側のプレースホルダだけを埋める。テンプレート本体（CSS・配色＝白基調×黄緑・構造）を書き換えてよいのは、ユーザーが明示的にデザイン変更を依頼したときのみ。
+> ⚠️ **`artifact-template.html` 自体は編集しない。** 必ず Read → Write で当日の HTML（`results/YYYY-MM/daily/YYYY-MM-DD.html`）へコピーし、そのコピー側のプレースホルダだけを埋める。テンプレート本体（CSS・配色・構造）を書き換えてよいのは、ユーザーが明示的にデザイン変更を依頼したときのみ。
 
 1. `Read` で `.claude/skills/daily-report/references/artifact-template.html` を読み込む
 2. `Read` で `.claude/skills/daily-report/references/artifact-fill-guide.md` を読み込む(プレースホルダ・繰り返しブロック・SVG 計算式の対応表)
@@ -66,7 +66,7 @@ CLAUDE.md の環境判定に従う。
 
 #### 完全固定される要素(変更禁止)
 
-- `<style>` ブロック全体（カラー変数＝白基調×黄緑・レイアウト・レスポンシブ）
+- `<style>` ブロック全体（カラー変数・レイアウト・レスポンシブ・ダークテーマ対応）
 - `<main>` 直下の順序: `header` → `KPI kpi-grid` → `section 01 今日のトレーニング` → `section 02 今日の食事` → `section 03 体の状態` → `section 04 直近 30 日の伸び` → `section 05 今日の振り返り` → `footer`
 - 各セクションの `<h3><span class="eyebrow-num">01|02|03|04|05</span>...` の数字ラベルと日本語見出し
 - KPI カード5枚の並び順(達成率/総ボリューム/カロリー/たんぱく質/体重)
